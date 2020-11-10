@@ -20,6 +20,11 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.gd9_x_yyyy.API.MahasiswaAPI;
@@ -33,6 +38,8 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.android.volley.Request.Method.DELETE;
 
 public class AdapterMahasiswa extends RecyclerView.Adapter<AdapterMahasiswa.adapterUserViewHolder> {
 
@@ -170,6 +177,44 @@ public class AdapterMahasiswa extends RecyclerView.Adapter<AdapterMahasiswa.adap
 
     //Fungsi menghapus data mahasiswa
     public void deleteMahasiswa(String npm){
+        //Pendeklarasian queue
+        RequestQueue queue = Volley.newRequestQueue(context);
 
+        final ProgressDialog progressDialog;
+        progressDialog = new ProgressDialog(context);
+        progressDialog.setMessage("loading.....");
+        progressDialog.setTitle("Menghapus data mahasiswa");
+        progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        progressDialog.show();
+
+        //Mulai membuat permintaan request menghapus data ke jaringan
+        StringRequest stringRequest = new StringRequest(DELETE, MahasiswaAPI.URL_DELETE + npm,
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        //Disini bagian jika response jaringan berhasil tidak terdapat gangguan/error
+                        progressDialog.dismiss();
+                        try {
+                            //Mengubah response string menjadi object
+                            JSONObject obj = new JSONObject(response);
+                            //obj.getString("message") digunakan untuk mengambil pesan status dari response
+                            Toast.makeText(context, obj.getString("message"), Toast.LENGTH_SHORT).show();
+                            notifyDataSetChanged();
+                            loadFragment(new ViewsMahasiswa());
+                        }catch (JSONException e){
+                            e.printStackTrace();
+                        }
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                //Disini bagian jika response jaringan terdapat gangguan/error
+                progressDialog.dismiss();
+                Toast.makeText(context, error.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+        // Disini proses penambahan request yang sudah kita buat ke request queue
+        // yang sudah dideklarasi
+        queue.add(stringRequest);
     }
 }

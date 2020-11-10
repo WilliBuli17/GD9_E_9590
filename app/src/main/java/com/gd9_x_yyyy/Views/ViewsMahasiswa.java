@@ -21,6 +21,11 @@ import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
 import com.gd9_x_yyyy.API.MahasiswaAPI;
 import com.gd9_x_yyyy.Adapters.AdapterMahasiswa;
 import com.gd9_x_yyyy.Models.Mahasiswa;
@@ -32,6 +37,8 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.android.volley.Request.Method.GET;
 
 public class ViewsMahasiswa extends Fragment {
     private RecyclerView recyclerView;
@@ -121,6 +128,64 @@ public class ViewsMahasiswa extends Fragment {
 
     //Fungsi menampilkan data mahasiswa
     public void getMahasiswa() {
+        //Pendeklarasian queue
+        RequestQueue queue = Volley.newRequestQueue(view.getContext());
 
+        //Meminta tanggapan string dari URL yang telah disediakan menggunakan method GET
+        //untuk request ini tidak memerlukan parameter
+        final ProgressDialog progressDialog;
+        progressDialog = new ProgressDialog(view.getContext());
+        progressDialog.setMessage("loading.....");
+        progressDialog.setTitle("Menampilkan data mahasiswa");
+        progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        progressDialog.show();
+
+        final JsonObjectRequest stringRequest = new JsonObjectRequest(GET,MahasiswaAPI.URL_SELECT,
+                null, new Response.Listener<JSONObject>(){
+            @Override
+            public void onResponse(JSONObject response){
+                //Disini bagian jika response jaringan berhasil tidak terdapat gangguan/error
+                progressDialog.dismiss();
+                try {
+                    //Mengambil data response json object yang berupa data mahasiswa
+                    JSONArray jsonArray = response.getJSONArray("mahasiswa");
+
+                    if(!listMahasiswa.isEmpty())
+                        listMahasiswa.clear();
+
+                    for (int i = 0; i < jsonArray.length(); i++){
+                        //Mengubah data jsonArray tertentu menjadi json Object
+                        JSONObject jsonObject = (JSONObject) jsonArray.get(i);
+
+                        String npm           = jsonObject.optString("npm");
+                        String nama          = jsonObject.optString("nama");
+                        String jenis_kelamin = jsonObject.optString("jenis_kelamin");
+                        String prodi         = jsonObject.optString("prodi");
+                        String gambar        = jsonObject.optString("gambar");
+
+                        //Membuat object user
+                        Mahasiswa mahasiswa =
+                                new Mahasiswa(npm, nama, jenis_kelamin, prodi, gambar);
+
+                        //menambahkan objek user tadi ke list user
+                        listMahasiswa.add(mahasiswa);
+                    }
+                    adapter.notifyDataSetChanged();
+                }catch (JSONException e){
+                    e.printStackTrace();
+                }
+                Toast.makeText(view.getContext(), response.optString("message"),
+                        Toast.LENGTH_SHORT).show();
+            }
+        }, new Response.ErrorListener(){
+            @Override
+            public void onErrorResponse(VolleyError error){
+                //Disini bagian jika response jaringan terdapat gangguan/error
+                progressDialog.dismiss();
+                Toast.makeText(view.getContext(), error.getMessage(),
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
+        queue.add(stringRequest);
     }
 }
